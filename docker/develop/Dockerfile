@@ -14,8 +14,6 @@ ENV PATH="/usr/local/bin/php:${PATH}"
 
 WORKDIR /var/www/html
 
-COPY . .
-
 RUN addgroup -g 1000 -S laravel && \
     adduser -u 1000 -S laravel -G laravel
 
