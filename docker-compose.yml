@@ -1,0 +1,80 @@
+version: '3.7'
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: ./docker/develop/Dockerfile
+    container_name: my-ecomerce-php
+    image: my-ecomerce
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/var/www/html
+      - ./docker/develop/php/develop.ini:/usr/local/etc/php/php.ini
+    ports:
+      - "9001:9000"
+      - "5173:5173"
+    networks:
+      - my-ecomerce-backen
+    command:
+      - /bin/sh
+      - -c
+      - |
+        php artisan migrate:fresh --seed &&
+        docker-php-entrypoint php-fpm
+    depends_on:
+      - mysql
+  nginx:
+    image: nginx:latest
+    container_name: my-ecomerce-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/develop/nginx/develop.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+    networks:
+      - my-ecomerce-backen
+  mysql:
+    image: mysql:8.0
+    container_name: my-ecomerce-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ecommerce_db
+      MYSQL_USER: ecomerce
+      MYSQL_PASSWORD: ecomerce
+    volumes:
+      - ./docker/develop/mysql/data:/var/lib/mysql
+    networks:
+      - my-ecomerce-backen
+  redis:
+    image: redis:latest
+    container_name: my-ecomerce-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - my-ecomerce-backen
+  mailpit:
+    image: axllent/mailpit
+    container_name: my-ecomerce-mailpit
+    volumes:
+      - ./docker/develop/mailpit/data:/data
+    ports:
+      - 8025:8025
+      - 1025:1025
+    networks:
+      - my-ecomerce-backen
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+networks:
+  my-ecomerce-backen:
+    name: my-ecomerce-backen
+
